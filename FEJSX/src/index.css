@@ -1788,10 +1788,19 @@ div.avvisi ul {
   color: var(--testo-tenue);
 }
 
-.link--pericolo-scuro:hover,
-.link--pericolo-scuro.conferma {
+/* Stessa specificità di .link:hover:not(:disabled) (pensato per la carta chiara) ma definito dopo:
+   su fondo scuro il testo resta chiaro anche in hover e in conferma */
+.link--pericolo-scuro:hover:not(:disabled),
+.link--pericolo-scuro.conferma:not(:disabled) {
   color: #ff8a78;
   border-color: currentColor;
+}
+
+.link--pericolo-scuro.conferma:not(:disabled) {
+  padding: 0.3rem 0.75rem;
+  border: 1px solid rgb(255 138 120 / 0.6);
+  border-radius: 999px;
+  background: rgb(226 67 47 / 0.15);
 }
 
 .archivio__barra {
