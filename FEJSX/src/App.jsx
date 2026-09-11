@@ -1,120 +1,86 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { getPosts } from './api/postsApi'
+import Lightbox from './components/Lightbox'
+import PostForm from './components/PostForm'
+import PostList from './components/PostList'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [posts, setPosts] = useState([])
+  const [caricamento, setCaricamento] = useState(true)
+  const [errore, setErrore] = useState(null)
+  const [lightbox, setLightbox] = useState(null)
+  const [toast, setToast] = useState(null)
+  const timerToast = useRef(null)
+
+  useEffect(() => {
+    getPosts()
+      .then(setPosts)
+      .catch((err) => setErrore(err.message))
+      .finally(() => setCaricamento(false))
+  }, [])
+
+  const notifica = useCallback((messaggio) => {
+    clearTimeout(timerToast.current)
+    setToast({ messaggio, id: crypto.randomUUID() })
+    timerToast.current = setTimeout(() => setToast(null), 2800)
+  }, [])
+
+  const chiudiLightbox = useCallback(() => setLightbox(null), [])
+
+  const handleCreato = (post) => {
+    setPosts((prev) => [post, ...prev])
+    notifica('Foto sviluppata e pubblicata')
+  }
+
+  const handleAggiornato = (post) => setPosts((prev) => prev.map((p) => (p.id === post.id ? post : p)))
+
+  const handleEliminato = (id) => setPosts((prev) => prev.filter((p) => p.id !== id))
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+      <header className="testata">
+        <div className="testata__logo">
+          <span className="testata__luce" aria-hidden="true" />
+          <h1>
+            Camera <em>Oscura</em>
+          </h1>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+        <p className="testata__motto">Scatta, sviluppa, appendi.</p>
+      </header>
 
-      <div className="ticks"></div>
+      <main className="layout">
+        <aside className="layout__form">
+          <PostForm onCreato={handleCreato} />
+        </aside>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        <section className="layout__bacheca" aria-labelledby="titolo-rullino">
+          <div className="sezione__intestazione">
+            <h2 id="titolo-rullino">Il rullino</h2>
+            {!caricamento && !errore && (
+              <span className="contatore">{posts.length} post</span>
+            )}
+          </div>
+          <PostList
+            posts={posts}
+            caricamento={caricamento}
+            errore={errore}
+            onAggiornato={handleAggiornato}
+            onEliminato={handleEliminato}
+            onApriFoto={(foto, indice) => setLightbox({ foto, indice })}
+            onNotifica={notifica}
+          />
+        </section>
+      </main>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+      {lightbox && (
+        <Lightbox foto={lightbox.foto} indiceIniziale={lightbox.indice} onChiudi={chiudiLightbox} />
+      )}
+
+      {toast && (
+        <div key={toast.id} className="toast" role="status">
+          {toast.messaggio}
+        </div>
+      )}
     </>
   )
 }
