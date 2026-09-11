@@ -49,7 +49,8 @@ public class ElaborazioneDocumenti {
 		long inizio = System.currentTimeMillis();
 		try {
 			OcrService.Estrazione estrazione = ocrService.estrai(documentiStorage.percorso(documento.getNomeFile()), formato);
-			documentoRepository.completa(documento.getId(), StatoDocumento.COMPLETATO, estrazione.metodo(),
+			// Il testo va revisionato dall'utente prima di finire nell'archivio
+			documentoRepository.completa(documento.getId(), StatoDocumento.DA_REVISIONARE, estrazione.metodo(),
 					estrazione.pagine(), estrazione.testo(), Instant.now());
 			log.info("Documento {} elaborato: {} pagine, {} caratteri, metodo {}, {} ms", documento.getId(),
 					estrazione.pagine(), estrazione.testo().length(), estrazione.metodo(), System.currentTimeMillis() - inizio);

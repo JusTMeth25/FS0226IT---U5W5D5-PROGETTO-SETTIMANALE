@@ -9,8 +9,17 @@ function DocumentoCard({ documento, ricerca, onApri }) {
   const tipo = tipoDocumento(documento.contentType)
 
   return (
-    <button type="button" className="fascicolo" onClick={() => onApri(documento.id)}>
+    <button
+      type="button"
+      className={`fascicolo ${documento.stato === 'DA_REVISIONARE' ? 'fascicolo--revisione' : ''}`}
+      onClick={() => onApri(documento.id)}
+    >
       <span className={`fascicolo__tipo fascicolo__tipo--${tipo.toLowerCase()}`}>{tipo}</span>
+      {documento.modificato && (
+        <span className="fascicolo__modificato" title="Testo corretto a mano">
+          ✎ modificato
+        </span>
+      )}
       <span className="fascicolo__nome" title={documento.nomeOriginale}>
         {documento.nomeOriginale}
       </span>
@@ -25,7 +34,7 @@ function DocumentoCard({ documento, ricerca, onApri }) {
           documento.errore
         ) : documento.anteprima ? (
           <TestoEvidenziato testo={documento.anteprima} ricerca={ricerca} />
-        ) : documento.stato === 'COMPLETATO' ? (
+        ) : documento.stato === 'COMPLETATO' || documento.stato === 'DA_REVISIONARE' ? (
           <em>Nessun testo riconosciuto</em>
         ) : (
           <span className="righe-fantasma" aria-hidden="true">

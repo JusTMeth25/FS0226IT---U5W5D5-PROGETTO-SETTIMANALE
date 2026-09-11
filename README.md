@@ -169,13 +169,15 @@ NomeFile - stringa (UUID + estensione)
 NomeOriginale - stringa
 ContentType - stringa
 Peso - long
-Stato - enum IN_ATTESA / IN_ELABORAZIONE / COMPLETATO / ERRORE
+Stato - enum IN_ATTESA / IN_ELABORAZIONE / DA_REVISIONARE / COMPLETATO / ERRORE
 Metodo - enum TESTO_PDF / OCR / MISTO
 Pagine - int
-Testo - TEXT (testo estratto)
+Testo - TEXT (testo corrente, eventualmente corretto a mano)
+TestoOcr - TEXT (testo originale letto da PDF/OCR, per il ripristino)
 Errore - varchar(500)
 created_At - Instant
 elaborato_At - Instant
+modificato_At - Instant (ultima correzione manuale, null = testo uguale all'OCR)
 ```
 
 ### UtenteController
@@ -198,7 +200,12 @@ Service (valida, salva su disco nella cartella privata, salva IN_ATTESA, pubblic
 
 GET /api/documenti/{id} - Dettaglio con testo completo
 GET /api/documenti/{id}/file - File originale (inline)
+PUT /api/documenti/{id}/testo - Modifica il testo ({testo, conferma})
+Service (possibile in DA_REVISIONARE e COMPLETATO, 409 durante l'OCR.
+         conferma=true -> salva nell'archivio: DA_REVISIONARE -> COMPLETATO)
+POST /api/documenti/{id}/ripristina - Torna al testo originale dell'OCR
 POST /api/documenti/{id}/ocr - Rielabora (409 se già in elaborazione)
+Service (aggiorna sempre TestoOcr; il testo corrente solo se non è stato corretto a mano)
 DELETE /api/documenti/{id} - Elimina documento e file
 ```
 
@@ -213,7 +220,11 @@ upload -> 202, stato IN_ATTESA
                se la pagina ha almeno 20 caratteri -> uso quello (niente OCR)
                altrimenti è una scansione -> render a 300 DPI -> Tesseract
           Immagini / TIFF (anche multipagina) -> Tesseract
-       -> COMPLETATO (testo + metodo + pagine) oppure ERRORE (messaggio)
+       -> DA_REVISIONARE (testo + metodo + pagine) oppure ERRORE (messaggio)
+       -> l'utente controlla e corregge il testo nell'editor
+          "Salva bozza" -> resta DA_REVISIONARE
+          "Salva nell'archivio" -> COMPLETATO
+       -> anche dopo il salvataggio il testo resta modificabile; "Ripristina OCR" torna all'originale
 frontend: polling ogni 2s finché ci sono documenti in coda
 all'avvio: i documenti rimasti IN_ATTESA / IN_ELABORAZIONE vengono rimessi in coda
 ```

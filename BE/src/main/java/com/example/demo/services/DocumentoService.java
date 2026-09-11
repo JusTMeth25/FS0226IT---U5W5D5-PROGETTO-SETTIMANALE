@@ -1,6 +1,7 @@
 package com.example.demo.services;
 
 import com.example.demo.dto.DocumentoResponse;
+import com.example.demo.dto.TestoDocumentoRequest;
 import com.example.demo.entities.Documento;
 import com.example.demo.entities.StatoDocumento;
 import com.example.demo.entities.Utente;
@@ -18,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -119,6 +121,34 @@ public class DocumentoService {
 		return toResponse(documento, false);
 	}
 
+	// Modifica del testo: prima del salvataggio (DA_REVISIONARE) o dopo (COMPLETATO)
+	@Transactional
+	public DocumentoResponse aggiornaTesto(UUID id, TestoDocumentoRequest req) {
+		Documento documento = cercaModificabile(id);
+		if (documento.getTestoOcr() == null) {
+			// documenti elaborati prima dell'introduzione della revisione
+			documento.setTestoOcr(documento.getTesto() == null ? "" : documento.getTesto());
+		}
+		String testo = req.testo().replace("\r\n", "\n");
+		documento.setTesto(testo);
+		documento.setModificatoAt(testo.equals(documento.getTestoOcr()) ? null : Instant.now());
+		if (req.conferma()) {
+			documento.setStato(StatoDocumento.COMPLETATO);
+		}
+		return toResponse(documentoRepository.saveAndFlush(documento), true);
+	}
+
+	// Torna al testo originale letto da PDF/OCR
+	@Transactional
+	public DocumentoResponse ripristinaTesto(UUID id) {
+		Documento documento = cercaModificabile(id);
+		if (documento.getTestoOcr() != null) {
+			documento.setTesto(documento.getTestoOcr());
+		}
+		documento.setModificatoAt(null);
+		return toResponse(documentoRepository.saveAndFlush(documento), true);
+	}
+
 	@Transactional
 	public void elimina(UUID id) {
 		Documento documento = cerca(id);
@@ -135,6 +165,18 @@ public class DocumentoService {
 	private Documento cerca(UUID id) {
 		return documentoRepository.findById(id)
 				.orElseThrow(() -> new NotFoundException("Documento con id " + id + " non trovato"));
+	}
+
+	private Documento cercaModificabile(UUID id) {
+		Documento documento = cerca(id);
+		switch (documento.getStato()) {
+			case IN_ATTESA, IN_ELABORAZIONE ->
+					throw new ConflictException("Attendi la fine dell'elaborazione prima di modificare il testo");
+			case ERRORE -> throw new ConflictException("Il documento non ha testo: rielaboralo prima di modificarlo");
+			default -> {
+				return documento;
+			}
+		}
 	}
 
 	// Ricerca case-insensitive con escape dei caratteri speciali di LIKE
@@ -155,8 +197,11 @@ public class DocumentoService {
 					? compatto.substring(0, LUNGHEZZA_ANTEPRIMA).strip() + "…"
 					: compatto;
 		}
+		String testoOcr = d.getTestoOcr() == null ? testo : d.getTestoOcr();
 		return new DocumentoResponse(d.getId(), d.getNomeOriginale(), d.getContentType(), d.getPeso(), d.getStato(),
-				d.getMetodo(), d.getPagine(), testo == null ? 0 : testo.length(), anteprima, conTesto ? testo : null,
-				d.getErrore(), d.getCreatedAt(), d.getElaboratoAt(), "/api/documenti/" + d.getId() + "/file");
+				d.getMetodo(), d.getPagine(), testo == null ? 0 : testo.length(), anteprima,
+				conTesto ? testo : null, conTesto ? testoOcr : null, d.getModificatoAt() != null,
+				d.getErrore(), d.getCreatedAt(), d.getElaboratoAt(), d.getModificatoAt(),
+				"/api/documenti/" + d.getId() + "/file");
 	}
 }

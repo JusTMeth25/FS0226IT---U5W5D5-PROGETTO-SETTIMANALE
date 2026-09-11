@@ -112,6 +112,7 @@ function ArchivioDocumenti({ utente, onCambioDocumenti, onEliminato, onNotifica 
   const chiudiViewer = useCallback(() => setApertoId(null), [])
   const aperto = documenti?.find((d) => d.id === apertoId)
   const inLavorazione = documenti?.filter(inCorso).length ?? 0
+  const daRevisionare = documenti?.filter((d) => d.stato === 'DA_REVISIONARE') ?? []
 
   return (
     <div className="archivio">
@@ -151,6 +152,20 @@ function ArchivioDocumenti({ utente, onCambioDocumenti, onEliminato, onNotifica 
             <li key={err}>{err}</li>
           ))}
         </ul>
+      )}
+
+      {daRevisionare.length > 0 && (
+        <div className="banner-revisione">
+          <span aria-hidden="true">✎</span>
+          <p>
+            <strong>{daRevisionare.length}</strong>{' '}
+            {daRevisionare.length === 1 ? 'documento da revisionare' : 'documenti da revisionare'}: controlla il
+            testo letto dall’OCR e salvalo nell’archivio.
+          </p>
+          <button type="button" onClick={() => setApertoId(daRevisionare[0].id)}>
+            Revisiona
+          </button>
+        </div>
       )}
 
       <div className="archivio__barra">

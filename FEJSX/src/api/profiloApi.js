@@ -15,7 +15,13 @@ export const caricaDocumenti = (utenteId, formData) =>
 
 export const getDocumento = (id) => richiesta(`/api/documenti/${id}`)
 
-export const rielaboraDocumento = (id) => richiesta(`/api/documenti/${id}/ocr`, { method: 'POST' })
+// conferma = true salva il documento nell'archivio dopo la revisione
+export const salvaTesto = (id, { testo, conferma }) =>
+  richiesta(`/api/documenti/${id}/testo`, json('PUT', { testo, conferma }))
+
+export const ripristinaTesto = (id) => richiesta(`/api/documenti/${id}/ripristina`, { method: 'POST' })
+
+export const rielaboraDocumento =(id) => richiesta(`/api/documenti/${id}/ocr`, { method: 'POST' })
 
 export const eliminaDocumento = (id) => richiesta(`/api/documenti/${id}`, { method: 'DELETE' })
 

@@ -38,11 +38,13 @@ public interface DocumentoRepository extends JpaRepository<Documento, UUID> {
 	@Query("update Documento d set d.stato = :stato, d.errore = null where d.id = :id")
 	int aggiornaStato(UUID id, StatoDocumento stato);
 
+	// Aggiorna sempre il testo OCR originale; il testo corrente solo se l'utente non l'ha corretto
 	@Modifying
 	@Transactional
 	@Query("""
 			update Documento d
-			set d.stato = :stato, d.metodo = :metodo, d.pagine = :pagine, d.testo = :testo,
+			set d.stato = :stato, d.metodo = :metodo, d.pagine = :pagine, d.testoOcr = :testo,
+			    d.testo = case when d.modificatoAt is null then :testo else d.testo end,
 			    d.errore = null, d.elaboratoAt = :elaboratoAt
 			where d.id = :id
 			""")

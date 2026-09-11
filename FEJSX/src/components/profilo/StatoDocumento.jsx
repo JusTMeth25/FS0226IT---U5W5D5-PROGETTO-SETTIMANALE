@@ -1,7 +1,8 @@
 const ETICHETTE = {
   IN_ATTESA: 'In coda',
   IN_ELABORAZIONE: 'In sviluppo…',
-  COMPLETATO: 'Letto',
+  DA_REVISIONARE: 'Da revisionare',
+  COMPLETATO: 'Nell’archivio',
   ERRORE: 'Errore',
 }
 
@@ -12,9 +13,10 @@ const METODI = {
 }
 
 function StatoDocumento({ stato, metodo }) {
+  const conMetodo = (stato === 'COMPLETATO' || stato === 'DA_REVISIONARE') && metodo
   return (
     <span className={`stato-doc stato-doc--${stato.toLowerCase()}`}>
-      {stato === 'COMPLETATO' && metodo ? `${ETICHETTE[stato]} · ${METODI[metodo]}` : ETICHETTE[stato]}
+      {conMetodo ? `${ETICHETTE[stato]} · ${METODI[metodo]}` : ETICHETTE[stato]}
     </span>
   )
 }

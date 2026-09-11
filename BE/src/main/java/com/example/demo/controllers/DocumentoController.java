@@ -1,7 +1,9 @@
 package com.example.demo.controllers;
 
 import com.example.demo.dto.DocumentoResponse;
+import com.example.demo.dto.TestoDocumentoRequest;
 import com.example.demo.services.DocumentoService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -14,6 +16,8 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -60,6 +64,17 @@ public class DocumentoController {
 				.contentType(MediaType.parseMediaType(file.contentType()))
 				.header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
 				.body(new FileSystemResource(file.percorso()));
+	}
+
+	// Modifica del testo estratto; conferma=true salva il documento nell'archivio
+	@PutMapping("/api/documenti/{id}/testo")
+	public DocumentoResponse updateTesto(@PathVariable UUID id, @Valid @RequestBody TestoDocumentoRequest req) {
+		return documentoService.aggiornaTesto(id, req);
+	}
+
+	@PostMapping("/api/documenti/{id}/ripristina")
+	public DocumentoResponse ripristina(@PathVariable UUID id) {
+		return documentoService.ripristinaTesto(id);
 	}
 
 	@PostMapping("/api/documenti/{id}/ocr")

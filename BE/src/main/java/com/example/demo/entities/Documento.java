@@ -57,9 +57,16 @@ public class Documento {
 
 	private Integer pagine;
 
-	// Testo estratto (PDF nativo o OCR)
+	// Testo corrente: quello estratto, eventualmente corretto dall'utente
 	@Column(columnDefinition = "TEXT")
 	private String testo;
+
+	// Testo originale letto da PDF/OCR, conservato per il ripristino
+	@Column(columnDefinition = "TEXT")
+	private String testoOcr;
+
+	// Ultima modifica manuale del testo; null = testo uguale all'originale
+	private Instant modificatoAt;
 
 	@Column(length = 500)
 	private String errore;
