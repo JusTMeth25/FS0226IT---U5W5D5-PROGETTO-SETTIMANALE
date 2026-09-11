@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { creaPost } from '../api/postsApi'
+import { descriviPosizione, leggiGpsExif, risolviIndirizzo } from '../utils/posizione'
 import { MAX_FILES, validaFile, validaNumero } from '../utils/validaImmagini'
 import Anteprime from './Anteprime'
 import CameraCapture from './CameraCapture'
 import Dropzone from './Dropzone'
+import PosizionePicker from './mappa/PosizionePicker'
 
 const nuovoItem = (file) => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) })
 const revoca = (items) => items.forEach((i) => URL.revokeObjectURL(i.url))
@@ -16,6 +18,10 @@ function PostForm({ onCreato }) {
   const [erroriFile, setErroriFile] = useState([])
   const [erroreServer, setErroreServer] = useState(null)
   const [invio, setInvio] = useState(false)
+  // Posizione del post (non delle singole foto)
+  const [posizione, setPosizione] = useState(null)
+  const [mostraPosizione, setMostraPosizione] = useState(false)
+  const [suggerimentoGps, setSuggerimentoGps] = useState(null)
 
   // Libera gli object URL delle anteprime quando il form viene smontato
   const itemsRef = useRef(items)
@@ -30,7 +36,19 @@ function PostForm({ onCreato }) {
     setItems([])
     setErroriFile([])
     setErroreServer(null)
+    setSuggerimentoGps(null)
     setFonte(nuova)
+  }
+
+  const cercaGps = async (files) => {
+    if (posizione) return
+    for (const file of files) {
+      const gps = await leggiGpsExif(file)
+      if (gps) {
+        setSuggerimentoGps({ ...gps, nome: file.name })
+        return
+      }
+    }
   }
 
   const aggiungiFile = async (files) => {
@@ -51,6 +69,7 @@ function PostForm({ onCreato }) {
     setItems([...items, ...accettati.map(nuovoItem)])
     setErroriFile(errori)
     setErroreServer(null)
+    cercaGps(accettati)
   }
 
   const handleScatto = async (file) => {
@@ -69,6 +88,22 @@ function PostForm({ onCreato }) {
     setItems(items.filter((i) => i.id !== id))
   }
 
+  const usaGps = async () => {
+    const { latitude, longitude } = suggerimentoGps
+    setSuggerimentoGps(null)
+    setPosizione({ latitude, longitude, address: null })
+    setMostraPosizione(true)
+    try {
+      const address = await risolviIndirizzo(latitude, longitude)
+      if (address) {
+        // aggiorna solo se l'utente non ha scelto nel frattempo un altro punto
+        setPosizione((p) => (p && p.latitude === latitude && p.longitude === longitude ? { ...p, address } : p))
+      }
+    } catch {
+      // restano le sole coordinate
+    }
+  }
+
   const reset = () => {
     revoca(items)
     setItems([])
@@ -76,6 +111,9 @@ function PostForm({ onCreato }) {
     setDescrizione('')
     setErroriFile([])
     setErroreServer(null)
+    setPosizione(null)
+    setMostraPosizione(false)
+    setSuggerimentoGps(null)
   }
 
   const erroreNumero = validaNumero(items.length, fonte)
@@ -90,6 +128,11 @@ function PostForm({ onCreato }) {
     fd.append('descrizione', descrizione.trim())
     fd.append('fonte', fonte)
     items.forEach((i) => fd.append('foto', i.file))
+    if (posizione) {
+      fd.append('latitude', posizione.latitude)
+      fd.append('longitude', posizione.longitude)
+      if (posizione.address) fd.append('address', posizione.address)
+    }
 
     setInvio(true)
     setErroreServer(null)
@@ -163,6 +206,21 @@ function PostForm({ onCreato }) {
         </ul>
       )}
 
+      {suggerimentoGps && !posizione && (
+        <div className="banner-gps">
+          <span aria-hidden="true">🛰</span>
+          <p>
+            Trovate coordinate GPS in <strong>{suggerimentoGps.nome}</strong>
+          </p>
+          <button type="button" onClick={usaGps}>
+            Usa
+          </button>
+          <button type="button" className="banner-gps__chiudi" onClick={() => setSuggerimentoGps(null)} aria-label="Ignora">
+            ×
+          </button>
+        </div>
+      )}
+
       <label className="campo">
         <span>Titolo</span>
         <input
@@ -186,6 +244,29 @@ function PostForm({ onCreato }) {
           placeholder="Racconta lo scatto…"
         />
       </label>
+
+      <div className="sezione-posizione">
+        <button
+          type="button"
+          className="sezione-posizione__toggle"
+          onClick={() => setMostraPosizione((v) => !v)}
+          aria-expanded={mostraPosizione}
+        >
+          <span className="sezione-posizione__etichetta">
+            Posizione <em>facoltativa</em>
+          </span>
+          <span className={`sezione-posizione__stato ${posizione ? 'impostata' : ''}`}>
+            {posizione ? descriviPosizione(posizione) : 'Nessuna'}
+          </span>
+          <span className="sezione-posizione__segno" aria-hidden="true">
+            {mostraPosizione ? '−' : '+'}
+          </span>
+        </button>
+        {mostraPosizione && <PosizionePicker valore={posizione} onChange={setPosizione} />}
+        {fonte === 'CAMERA' && !posizione && (
+          <p className="suggerimento">Lo scatto dal browser non contiene dati GPS: usa “Usa la mia posizione”.</p>
+        )}
+      </div>
 
       {erroreServer && (
         <div className="avvisi" role="alert">

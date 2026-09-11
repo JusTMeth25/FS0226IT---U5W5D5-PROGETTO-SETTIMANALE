@@ -1,10 +1,13 @@
 package com.example.demo.services;
 
 import com.example.demo.dto.FotoResponse;
+import com.example.demo.dto.PosizioneRequest;
+import com.example.demo.dto.PosizioneResponse;
 import com.example.demo.dto.PostCreateRequest;
 import com.example.demo.dto.PostPatchRequest;
 import com.example.demo.dto.PostResponse;
 import com.example.demo.entities.Foto;
+import com.example.demo.entities.GeoPoint;
 import com.example.demo.entities.Post;
 import com.example.demo.exceptions.NotFoundException;
 import com.example.demo.repositories.PostRepository;
@@ -54,6 +57,9 @@ public class PostService {
 		});
 
 		Post post = new Post(req.titolo().trim(), normalizza(req.descrizione()), req.fonte());
+		if (req.haPosizione()) {
+			post.setPosizione(new GeoPoint(req.latitude(), req.longitude(), req.address()));
+		}
 		for (int i = 0; i < files.size(); i++) {
 			MultipartFile file = files.get(i);
 			FormatoImmagine formato = formati.get(i);
@@ -74,6 +80,20 @@ public class PostService {
 		if (req.descrizione() != null) {
 			post.setDescrizione(normalizza(req.descrizione()));
 		}
+		return toResponse(postRepository.saveAndFlush(post));
+	}
+
+	@Transactional
+	public PostResponse impostaPosizione(UUID id, PosizioneRequest req) {
+		Post post = cerca(id);
+		post.setPosizione(new GeoPoint(req.latitude(), req.longitude(), req.address()));
+		return toResponse(postRepository.saveAndFlush(post));
+	}
+
+	@Transactional
+	public PostResponse rimuoviPosizione(UUID id) {
+		Post post = cerca(id);
+		post.setPosizione(null);
 		return toResponse(postRepository.saveAndFlush(post));
 	}
 
@@ -103,7 +123,10 @@ public class PostService {
 		List<FotoResponse> foto = post.getFoto().stream()
 				.map(f -> new FotoResponse(f.getId(), "/uploads/" + f.getNomeFile(), f.getNomeOriginale(), f.getContentType(), f.getPeso()))
 				.toList();
+		GeoPoint geo = post.getPosizione();
+		PosizioneResponse posizione = geo == null ? null
+				: new PosizioneResponse(geo.getLatitude(), geo.getLongitude(), geo.getAddress());
 		return new PostResponse(post.getId(), post.getTitolo(), post.getDescrizione(), post.getFonte(),
-				post.getCreatedAt(), post.getUpdatedAt(), foto);
+				post.getCreatedAt(), post.getUpdatedAt(), posizione, foto);
 	}
 }

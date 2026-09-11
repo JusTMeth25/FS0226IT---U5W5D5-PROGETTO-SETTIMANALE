@@ -2,6 +2,7 @@ package com.example.demo.exceptions;
 
 import com.example.demo.dto.ErroreResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.MessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartException;
@@ -39,6 +41,17 @@ public class GlobalExceptionHandler {
 				.map(e -> e.getField() + ": " + (e.isBindingFailure() ? "valore non valido" : e.getDefaultMessage()))
 				.toList();
 		return risposta(HttpStatus.BAD_REQUEST, "Dati del post non validi", dettagli);
+	}
+
+	@ExceptionHandler(HandlerMethodValidationException.class)
+	public ResponseEntity<ErroreResponse> handleMethodValidation(HandlerMethodValidationException ex) {
+		List<String> dettagli = ex.getAllErrors().stream().map(MessageSourceResolvable::getDefaultMessage).toList();
+		return risposta(HttpStatus.BAD_REQUEST, "Parametri non validi", dettagli);
+	}
+
+	@ExceptionHandler(GeocodingException.class)
+	public ResponseEntity<ErroreResponse> handleGeocoding(GeocodingException ex) {
+		return risposta(ex.getStatus(), ex.getMessage(), List.of());
 	}
 
 	@ExceptionHandler(MaxUploadSizeExceededException.class)

@@ -13,6 +13,7 @@ public record PostResponse(
 		FontePost fonte,
 		Instant createdAt,
 		Instant updatedAt,
+		PosizioneResponse posizione,
 		List<FotoResponse> foto
 ) {
 }

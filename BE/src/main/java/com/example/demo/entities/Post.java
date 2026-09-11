@@ -2,6 +2,7 @@ package com.example.demo.entities;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -49,6 +50,10 @@ public class Post {
 
 	@UpdateTimestamp
 	private Instant updatedAt;
+
+	// null se il post non ha una posizione
+	@Embedded
+	private GeoPoint posizione;
 
 	@OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
 	@OrderBy("ordine ASC")

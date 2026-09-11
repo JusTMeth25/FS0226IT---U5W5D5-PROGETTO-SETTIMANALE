@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getPosts } from './api/postsApi'
 import Lightbox from './components/Lightbox'
+import MappaPost from './components/mappa/MappaPost'
+import ProviderMappe from './components/mappa/ProviderMappe'
 import PostForm from './components/PostForm'
 import PostList from './components/PostList'
 
@@ -8,6 +10,7 @@ function App() {
   const [posts, setPosts] = useState([])
   const [caricamento, setCaricamento] = useState(true)
   const [errore, setErrore] = useState(null)
+  const [vista, setVista] = useState('rullino')
   const [lightbox, setLightbox] = useState(null)
   const [toast, setToast] = useState(null)
   const timerToast = useRef(null)
@@ -26,18 +29,24 @@ function App() {
   }, [])
 
   const chiudiLightbox = useCallback(() => setLightbox(null), [])
+  const apriFoto = useCallback((foto, indice) => setLightbox({ foto, indice }), [])
 
   const handleCreato = (post) => {
     setPosts((prev) => [post, ...prev])
     notifica('Foto sviluppata e pubblicata')
   }
 
-  const handleAggiornato = (post) => setPosts((prev) => prev.map((p) => (p.id === post.id ? post : p)))
+  const handleAggiornato = useCallback(
+    (post) => setPosts((prev) => prev.map((p) => (p.id === post.id ? post : p))),
+    [],
+  )
 
   const handleEliminato = (id) => setPosts((prev) => prev.filter((p) => p.id !== id))
 
+  const pronto = !caricamento && !errore
+
   return (
-    <>
+    <ProviderMappe>
       <header className="testata">
         <div className="testata__logo">
           <span className="testata__luce" aria-hidden="true" />
@@ -53,22 +62,47 @@ function App() {
           <PostForm onCreato={handleCreato} />
         </aside>
 
-        <section className="layout__bacheca" aria-labelledby="titolo-rullino">
+        <section className="layout__bacheca" aria-labelledby="titolo-sezione">
           <div className="sezione__intestazione">
-            <h2 id="titolo-rullino">Il rullino</h2>
-            {!caricamento && !errore && (
-              <span className="contatore">{posts.length} post</span>
+            <h2 id="titolo-sezione">{vista === 'rullino' ? 'Il rullino' : 'I luoghi'}</h2>
+            {pronto && (
+              <div className="selettore selettore--piccolo" role="tablist" aria-label="Vista">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={vista === 'rullino'}
+                  className={vista === 'rullino' ? 'attivo' : ''}
+                  onClick={() => setVista('rullino')}
+                >
+                  Rullino · {posts.length}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={vista === 'mappa'}
+                  className={vista === 'mappa' ? 'attivo' : ''}
+                  onClick={() => setVista('mappa')}
+                >
+                  Mappa
+                </button>
+                <span className={`selettore__cursore ${vista === 'mappa' ? 'destra' : ''}`} aria-hidden="true" />
+              </div>
             )}
           </div>
-          <PostList
-            posts={posts}
-            caricamento={caricamento}
-            errore={errore}
-            onAggiornato={handleAggiornato}
-            onEliminato={handleEliminato}
-            onApriFoto={(foto, indice) => setLightbox({ foto, indice })}
-            onNotifica={notifica}
-          />
+
+          {vista === 'mappa' && pronto ? (
+            <MappaPost posts={posts} onApriFoto={apriFoto} />
+          ) : (
+            <PostList
+              posts={posts}
+              caricamento={caricamento}
+              errore={errore}
+              onAggiornato={handleAggiornato}
+              onEliminato={handleEliminato}
+              onApriFoto={apriFoto}
+              onNotifica={notifica}
+            />
+          )}
         </section>
       </main>
 
@@ -81,7 +115,7 @@ function App() {
           {toast.messaggio}
         </div>
       )}
-    </>
+    </ProviderMappe>
   )
 }
 

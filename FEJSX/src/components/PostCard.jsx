@@ -1,6 +1,9 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { aggiornaPost, eliminaPost, urlFoto } from '../api/postsApi'
+import { descriviPosizione, linkGoogleMaps } from '../utils/posizione'
 import { formattaPeso } from '../utils/validaImmagini'
+import MiniMappa from './mappa/MiniMappa'
+import PosizioneModal from './mappa/PosizioneModal'
 
 const formatoData = new Intl.DateTimeFormat('it-IT', { dateStyle: 'medium', timeStyle: 'short' })
 
@@ -18,12 +21,16 @@ function PostCard({ post, onAggiornato, onEliminato, onApriFoto, onNotifica }) {
   const [inCorso, setInCorso] = useState(false)
   const [errore, setErrore] = useState(null)
   const [conferma, setConferma] = useState(false)
+  const [mostraMappa, setMostraMappa] = useState(false)
+  const [modalePosizione, setModalePosizione] = useState(false)
 
   const foto = post.foto
   const corrente = foto[Math.min(indice, foto.length - 1)]
   const pesoTotale = foto.reduce((tot, f) => tot + f.peso, 0)
 
   const scorri = (delta) => setIndice((i) => (i + delta + foto.length) % foto.length)
+
+  const chiudiModale = useCallback(() => setModalePosizione(false), [])
 
   const apriModifica = () => {
     setBozza({ titolo: post.titolo, descrizione: post.descrizione ?? '' })
@@ -140,6 +147,29 @@ function PostCard({ post, onAggiornato, onEliminato, onApriFoto, onNotifica }) {
         <div className="polaroid__didascalia">
           <h3>{post.titolo}</h3>
           {post.descrizione && <p>{post.descrizione}</p>}
+
+          {post.posizione && (
+            <div className="luogo">
+              <button
+                type="button"
+                className="luogo__testo"
+                onClick={() => setMostraMappa((v) => !v)}
+                aria-expanded={mostraMappa}
+                title={mostraMappa ? 'Nascondi mappa' : 'Mostra mappa'}
+              >
+                <span aria-hidden="true">📍</span> {descriviPosizione(post.posizione)}
+              </button>
+              {mostraMappa && (
+                <div className="luogo__mappa">
+                  <MiniMappa posizione={post.posizione} />
+                  <a href={linkGoogleMaps(post.posizione)} target="_blank" rel="noreferrer">
+                    Apri in Google Maps ↗
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
           <dl className="meta">
             <div>
               <dt>Data</dt>
@@ -158,6 +188,9 @@ function PostCard({ post, onAggiornato, onEliminato, onApriFoto, onNotifica }) {
             <button type="button" className="link" onClick={apriModifica} disabled={inCorso}>
               Modifica
             </button>
+            <button type="button" className="link" onClick={() => setModalePosizione(true)} disabled={inCorso}>
+              {post.posizione ? 'Luogo' : '+ Luogo'}
+            </button>
             <button
               type="button"
               className={`link link--pericolo ${conferma ? 'conferma' : ''}`}
@@ -174,6 +207,10 @@ function PostCard({ post, onAggiornato, onEliminato, onApriFoto, onNotifica }) {
         <p className="polaroid__errore" role="alert">
           {errore}
         </p>
+      )}
+
+      {modalePosizione && (
+        <PosizioneModal post={post} onChiudi={chiudiModale} onAggiornato={onAggiornato} onNotifica={onNotifica} />
       )}
     </article>
   )
