@@ -35,3 +35,5 @@ build/
 ### App ###
 env.properties
 uploads/
+documenti/
+tessdata/

@@ -40,13 +40,18 @@ public class GlobalExceptionHandler {
 		List<String> dettagli = result.getFieldErrors().stream()
 				.map(e -> e.getField() + ": " + (e.isBindingFailure() ? "valore non valido" : e.getDefaultMessage()))
 				.toList();
-		return risposta(HttpStatus.BAD_REQUEST, "Dati del post non validi", dettagli);
+		return risposta(HttpStatus.BAD_REQUEST, "Dati non validi", dettagli);
 	}
 
 	@ExceptionHandler(HandlerMethodValidationException.class)
 	public ResponseEntity<ErroreResponse> handleMethodValidation(HandlerMethodValidationException ex) {
 		List<String> dettagli = ex.getAllErrors().stream().map(MessageSourceResolvable::getDefaultMessage).toList();
 		return risposta(HttpStatus.BAD_REQUEST, "Parametri non validi", dettagli);
+	}
+
+	@ExceptionHandler(ConflictException.class)
+	public ResponseEntity<ErroreResponse> handleConflict(ConflictException ex) {
+		return risposta(HttpStatus.CONFLICT, ex.getMessage(), List.of());
 	}
 
 	@ExceptionHandler(GeocodingException.class)

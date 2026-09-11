@@ -5,8 +5,12 @@ import MappaPost from './components/mappa/MappaPost'
 import ProviderMappe from './components/mappa/ProviderMappe'
 import PostForm from './components/PostForm'
 import PostList from './components/PostList'
+import PaginaProfilo from './components/profilo/PaginaProfilo'
+
+const paginaDaHash = () => (window.location.hash === '#/profilo' ? 'profilo' : 'bacheca')
 
 function App() {
+  const [pagina, setPagina] = useState(paginaDaHash)
   const [posts, setPosts] = useState([])
   const [caricamento, setCaricamento] = useState(true)
   const [errore, setErrore] = useState(null)
@@ -21,6 +25,18 @@ function App() {
       .catch((err) => setErrore(err.message))
       .finally(() => setCaricamento(false))
   }, [])
+
+  // Avanti/indietro del browser tra bacheca e profilo
+  useEffect(() => {
+    const handleHash = () => setPagina(paginaDaHash())
+    window.addEventListener('hashchange', handleHash)
+    return () => window.removeEventListener('hashchange', handleHash)
+  }, [])
+
+  const vai = (nuova) => {
+    window.location.hash = nuova === 'profilo' ? '#/profilo' : '#/'
+    setPagina(nuova)
+  }
 
   const notifica = useCallback((messaggio) => {
     clearTimeout(timerToast.current)
@@ -54,57 +70,80 @@ function App() {
             Camera <em>Oscura</em>
           </h1>
         </div>
-        <p className="testata__motto">Scatta, sviluppa, appendi.</p>
+        <nav className="navigazione" aria-label="Sezioni">
+          <button
+            type="button"
+            className={pagina === 'bacheca' ? 'attivo' : ''}
+            aria-current={pagina === 'bacheca' ? 'page' : undefined}
+            onClick={() => vai('bacheca')}
+          >
+            Bacheca
+          </button>
+          <button
+            type="button"
+            className={pagina === 'profilo' ? 'attivo' : ''}
+            aria-current={pagina === 'profilo' ? 'page' : undefined}
+            onClick={() => vai('profilo')}
+          >
+            Profilo e documenti
+          </button>
+        </nav>
       </header>
 
-      <main className="layout">
-        <aside className="layout__form">
-          <PostForm onCreato={handleCreato} />
-        </aside>
+      {pagina === 'profilo' ? (
+        <main className="pagina">
+          <PaginaProfilo onNotifica={notifica} />
+        </main>
+      ) : (
+        <main className="layout">
+          <aside className="layout__form">
+            <PostForm onCreato={handleCreato} />
+          </aside>
 
-        <section className="layout__bacheca" aria-labelledby="titolo-sezione">
-          <div className="sezione__intestazione">
-            <h2 id="titolo-sezione">{vista === 'rullino' ? 'Il rullino' : 'I luoghi'}</h2>
-            {pronto && (
-              <div className="selettore selettore--piccolo" role="tablist" aria-label="Vista">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={vista === 'rullino'}
-                  className={vista === 'rullino' ? 'attivo' : ''}
-                  onClick={() => setVista('rullino')}
-                >
-                  Rullino · {posts.length}
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={vista === 'mappa'}
-                  className={vista === 'mappa' ? 'attivo' : ''}
-                  onClick={() => setVista('mappa')}
-                >
-                  Mappa
-                </button>
-                <span className={`selettore__cursore ${vista === 'mappa' ? 'destra' : ''}`} aria-hidden="true" />
-              </div>
+          <section className="layout__bacheca" aria-labelledby="titolo-sezione">
+            <div className="sezione__intestazione">
+              <h2 id="titolo-sezione">{vista === 'rullino' ? 'Il rullino' : 'I luoghi'}</h2>
+              {pronto && (
+                <div className="selettore selettore--piccolo" role="tablist" aria-label="Vista">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={vista === 'rullino'}
+                    className={vista === 'rullino' ? 'attivo' : ''}
+                    onClick={() => setVista('rullino')}
+                  >
+                    Rullino · {posts.length}
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={vista === 'mappa'}
+                    className={vista === 'mappa' ? 'attivo' : ''}
+                    onClick={() => setVista('mappa')}
+                  >
+                    Mappa
+                  </button>
+                  <span className={`selettore__cursore ${vista === 'mappa' ? 'destra' : ''}`} aria-hidden="true" />
+                </div>
+              )}
+            </div>
+
+            {vista === 'mappa' && pronto ? (
+              <MappaPost posts={posts} onApriFoto={apriFoto} />
+            ) : (
+              <PostList
+                posts={posts}
+                caricamento={caricamento}
+                errore={errore}
+                onAggiornato={handleAggiornato}
+                onEliminato={handleEliminato}
+                onApriFoto={apriFoto}
+                onNotifica={notifica}
+              />
             )}
-          </div>
-
-          {vista === 'mappa' && pronto ? (
-            <MappaPost posts={posts} onApriFoto={apriFoto} />
-          ) : (
-            <PostList
-              posts={posts}
-              caricamento={caricamento}
-              errore={errore}
-              onAggiornato={handleAggiornato}
-              onEliminato={handleEliminato}
-              onApriFoto={apriFoto}
-              onNotifica={notifica}
-            />
-          )}
-        </section>
-      </main>
+          </section>
+        </main>
+      )}
 
       {lightbox && (
         <Lightbox foto={lightbox.foto} indiceIniziale={lightbox.indice} onChiudi={chiudiLightbox} />

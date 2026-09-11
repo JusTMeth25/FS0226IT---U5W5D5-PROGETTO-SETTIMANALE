@@ -63,7 +63,7 @@ public class PostService {
 		for (int i = 0; i < files.size(); i++) {
 			MultipartFile file = files.get(i);
 			FormatoImmagine formato = formati.get(i);
-			String nomeFile = fileStorageService.salva(file, formato);
+			String nomeFile = fileStorageService.salva(file, formato.getEstensioneSalvataggio());
 			fileSalvati.add(nomeFile);
 			post.aggiungiFoto(new Foto(nomeFile, file.getOriginalFilename(), formato.getContentType(), file.getSize()));
 		}

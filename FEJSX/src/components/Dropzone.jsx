@@ -1,8 +1,16 @@
 import { useState } from 'react'
 import { ACCEPT } from '../utils/validaImmagini'
 
-// Selezione file tramite click o drag & drop. La validazione avviene nel form.
-function Dropzone({ onFiles, disabilitata, rimanenti }) {
+// Selezione file tramite click o drag & drop. La validazione avviene nel chiamante.
+function Dropzone({
+  onFiles,
+  disabilitata,
+  rimanenti,
+  accept = ACCEPT,
+  titolo = 'Trascina qui le foto o clicca per sceglierle',
+  descrizione = 'JPEG o PNG · max 10MB ciascuna',
+  testoPiena = 'Rullino pieno',
+}) {
   const [sopra, setSopra] = useState(false)
 
   const handleChange = (e) => {
@@ -34,17 +42,18 @@ function Dropzone({ onFiles, disabilitata, rimanenti }) {
       onDragLeave={() => setSopra(false)}
       onDrop={handleDrop}
     >
-      <input type="file" multiple accept={ACCEPT} onChange={handleChange} disabled={disabilitata} />
+      <input type="file" multiple accept={accept} onChange={handleChange} disabled={disabilitata} />
       <span className="dropzone__icona" aria-hidden="true">
         ⤒
       </span>
       {disabilitata ? (
-        <strong>Rullino pieno</strong>
+        <strong>{testoPiena}</strong>
       ) : (
         <>
-          <strong>Trascina qui le foto o clicca per sceglierle</strong>
+          <strong>{titolo}</strong>
           <small>
-            JPEG o PNG · max 10MB ciascuna · ancora {rimanenti}
+            {descrizione}
+            {rimanenti != null && ` · ancora ${rimanenti}`}
           </small>
         </>
       )}
